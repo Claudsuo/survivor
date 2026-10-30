@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Survivor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Survivor">
+<meta name="theme-color" content="#0a0708">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+<style>
+html,body{margin:0;padding:0;width:100%;height:100%;background:#0a0708;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+#c{position:fixed;left:0;top:0;width:100%;height:100%;display:block;background:#0a0708;outline:none}
+#l{position:fixed;left:0;top:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#ffd34d;font:800 30px system-ui,sans-serif;background:#0a0708;letter-spacing:4px}
+#b{width:60%;max-width:420px;height:10px;background:#2a2020;border-radius:6px;margin-top:18px;overflow:hidden}
+#f{height:100%;width:0;background:#ffd34d;transition:width .2s}
+#t{color:#a89c8a;font:15px system-ui,sans-serif;margin-top:12px;letter-spacing:0;text-align:center}
+#e{color:#ff8a7a;font:15px system-ui,sans-serif;margin-top:14px;max-width:85%;text-align:center;letter-spacing:0}
+</style>
+</head>
+<body>
+<canvas id="c" tabindex="-1"></canvas>
+<div id="l">SURVIVOR<div id="b"><div id="f"></div></div><div id="t">Lädt … (ca. 20 MB, beim ersten Mal etwas Geduld)</div><div id="e"></div></div>
+<script>
+(function(){
+  var $=function(i){return document.getElementById(i)};
+  var err=function(m){$('e').textContent=m;$('l').style.display='flex';};
+  window.addEventListener('error',function(ev){err('Fehler: '+(ev.message||ev));});
+  // Programm und Daten liegen gepackt (gzip) vor und werden hier im Browser entpackt
+  var PACK={'Build/Web.wasm':['Build/code.wasm','application/wasm',11260971],'Build/Web.data':['Build/daten.wasm','application/octet-stream',11483685]};
+  var total=0,done={};for(var k in PACK)total+=PACK[k][2];
+  var show=function(){var s=0;for(var k in done)s+=done[k];var p=Math.min(1,s/total);$('f').style.width=Math.round(p*90)+'%';$('t').textContent='Lädt … '+Math.round(p*100)+' %';};
+  var of=window.fetch.bind(window);
+  window.fetch=function(u,o){
+    var url=typeof u==='string'?u:(u&&u.url)||'';
+    for(var key in PACK){
+      if(url.indexOf(key)>=0){
+        var P=PACK[key];
+        return of(P[0]).then(function(r){
+          if(!r.ok)throw new Error('Datei fehlt: '+P[0]+' ('+r.status+')');
+          var rd=r.body.getReader(),parts=[],n=0;
+          var pump=function(){return rd.read().then(function(x){if(x.done)return;parts.push(x.value);n+=x.value.length;done[key]=n;show();return pump();});};
+          return pump().then(function(){
+            var b=new Blob(parts);
+            return b.slice(0,2).arrayBuffer().then(function(h){
+              var m=new Uint8Array(h),gz=m[0]===0x1f&&m[1]===0x8b;
+              if(gz&&typeof DecompressionStream==='undefined')throw new Error('Dieser Browser ist zu alt (bitte iOS 16.4 oder neuer).');
+              var st=gz?b.stream().pipeThrough(new DecompressionStream('gzip')):b.stream();
+              return new Response(st).arrayBuffer().then(function(buf){
+                return new Response(buf,{status:200,headers:{'Content-Type':P[1],'Content-Length':String(buf.byteLength)}});
+              });
+            });
+          });
+        });
+      }
+    }
+    return of(u,o);
+  };
+  var s=document.createElement('script');
+  s.src="Build/Web.loader.js";
+  s.onload=function(){
+    createUnityInstance($('c'),{
+      dataUrl:"Build/Web.data",frameworkUrl:"Build/Web.framework.js",codeUrl:"Build/Web.wasm",
+      streamingAssetsUrl:"StreamingAssets",companyName:"Survivor",productName:"Survivor",productVersion:"1.0",
+      devicePixelRatio:Math.min(window.devicePixelRatio||1,3),
+      showBanner:function(m,t){if(t==='error')err(m);}
+    },function(p){if(p>=.9){$('f').style.width=Math.round(p*100)+'%';$('t').textContent='Startet …';}})
+    .then(function(){$('l').style.display='none';})
+    .catch(function(m){err('Fehler: '+m);});
+  };
+  s.onerror=function(){err('Das Spiel konnte nicht geladen werden.');};
+  document.body.appendChild(s);
+})();
+</script>
+</body>
+</html>
