@@ -31,7 +31,7 @@ html,body{margin:0;padding:0;width:100%;height:100%;background:#0a0708;overflow:
   var err=function(m){$('e').textContent=m;$('l').style.display='flex';};
   window.addEventListener('error',function(ev){err('Fehler: '+(ev.message||ev));});
   // Programm und Daten liegen gepackt (gzip) vor und werden hier im Browser entpackt
-  var PACK={'Build/Web.wasm':['Build/code.wasm','application/wasm',11261588],'Build/Web.data':['Build/daten.wasm','application/octet-stream',11556274]};
+  var PACK={'Build/Web.wasm':['Build/code.wasm','application/wasm',11262111],'Build/Web.data':['Build/daten.wasm','application/octet-stream',11556511]};
   var total=0,done={};for(var k in PACK)total+=PACK[k][2];
   var show=function(){var s=0;for(var k in done)s+=done[k];var p=Math.min(1,s/total);$('f').style.width=Math.round(p*90)+'%';$('t').textContent='Lädt … '+Math.round(p*100)+' %';};
   var of=window.fetch.bind(window);
